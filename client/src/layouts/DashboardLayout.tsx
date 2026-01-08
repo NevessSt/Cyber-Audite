@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LayoutDashboard, FileText, Shield, LogOut } from 'lucide-react';
+import { LayoutDashboard, FileText, Shield, LogOut, Activity, Users } from 'lucide-react';
 
 const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -37,6 +37,25 @@ const DashboardLayout: React.FC = () => {
             <FileText className="w-5 h-5" />
             Audits
           </Link>
+          
+          {user?.role === 'ADMIN' && (
+            <>
+              <Link
+                to="/admin/users"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors"
+              >
+                <Users className="w-5 h-5" />
+                Manage Users
+              </Link>
+              <Link
+                to="/admin/logs"
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors"
+              >
+                <Activity className="w-5 h-5" />
+                Audit Logs
+              </Link>
+            </>
+          )}
         </nav>
         <div className="absolute bottom-0 w-full p-4 border-t bg-gray-50">
           <div className="flex items-center gap-3 px-4 py-3 mb-2">

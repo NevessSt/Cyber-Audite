@@ -1,13 +1,11 @@
 version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: cyber-audit-db
-    restart: always
+    container_name: cyber_audit_db
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: securepassword
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: cyber_audit
     ports:
       - "5432:5432"

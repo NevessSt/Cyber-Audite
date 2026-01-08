@@ -1,13 +1,13 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Response } from 'express';
+import prisma from '../services/prisma';
+import { AuthRequest } from '../middleware/auth';
+import { logAction } from '../services/auditLogService';
 
-const prisma = new PrismaClient();
-
-export const generateReport = async (req: Request, res: Response) => {
+export const generateReport = async (req: AuthRequest, res: Response) => {
   try {
     const { auditId } = req.body;
 
-    // 1. Fetch Audit and Findings
+    // 1. Authorization Check
     const audit = await prisma.audit.findUnique({
       where: { id: auditId },
       include: {
@@ -19,6 +19,10 @@ export const generateReport = async (req: Request, res: Response) => {
 
     if (!audit) {
       return res.status(404).json({ error: 'Audit not found' });
+    }
+
+    if (req.user?.role !== 'ADMIN' && audit.auditorId !== req.user?.userId) {
+      return res.status(403).json({ error: 'Forbidden: You do not have access to this audit' });
     }
 
     // 2. Generate Content (Simple Text/Markdown for now)
@@ -49,9 +53,12 @@ export const generateReport = async (req: Request, res: Response) => {
       data: {
         title: `${audit.name} - Final Report`,
         content: reportContent,
-        auditId: audit.id
+        auditId: audit.id,
+        createdById: req.user?.userId,
       }
     });
+
+    await logAction(req.user!.userId, 'REPORT_GENERATE', 'Report', report.id, { auditId }, req);
 
     res.status(201).json(report);
   } catch (error) {
@@ -60,9 +67,18 @@ export const generateReport = async (req: Request, res: Response) => {
   }
 };
 
-export const getReportsByAudit = async (req: Request, res: Response) => {
+export const getReportsByAudit = async (req: AuthRequest, res: Response) => {
   try {
     const { auditId } = req.params;
+
+    // Authorization Check
+    const audit = await prisma.audit.findUnique({ where: { id: auditId } });
+    if (!audit) return res.status(404).json({ error: 'Audit not found' });
+
+    if (req.user?.role !== 'ADMIN' && audit.auditorId !== req.user?.userId) {
+      return res.status(403).json({ error: 'Forbidden: You do not have access to this audit' });
+    }
+
     const reports = await prisma.report.findMany({
       where: { auditId },
       orderBy: { createdAt: 'desc' }

@@ -8,15 +8,26 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(AUDITOR)
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  projects  Project[]
-  audits    Audit[]
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  role            Role      @default(AUDITOR)
+  name            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  projects        Project[]
+  audits          Audit[]
+  auditLogs       AuditLog[]
+  
+  // Audit Trails (Created/Updated by this user)
+  createdAudits   Audit[]   @relation("CreatedAudits")
+  updatedAudits   Audit[]   @relation("UpdatedAudits")
+  createdFindings Finding[] @relation("CreatedFindings")
+  updatedFindings Finding[] @relation("UpdatedFindings")
+  createdReports  Report[]  @relation("CreatedReports")
+  updatedReports  Report[]  @relation("UpdatedReports")
 }
 
 model Project {
@@ -32,40 +43,73 @@ model Project {
 }
 
 model Audit {
-  id        String    @id @default(uuid())
-  name      String
-  status    AuditStatus @default(PLANNED)
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id])
-  auditorId String
-  auditor   User      @relation(fields: [auditorId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  findings  Finding[]
-  reports   Report[]
+  id          String      @id @default(uuid())
+  name        String
+  status      AuditStatus @default(PLANNED)
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id])
+  auditorId   String
+  auditor     User        @relation(fields: [auditorId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Audit Fields
+  createdById String?
+  createdBy   User?       @relation("CreatedAudits", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?       @relation("UpdatedAudits", fields: [updatedById], references: [id])
+
+  findings    Finding[]
+  reports     Report[]
 }
 
 model Finding {
-  id               String   @id @default(uuid())
+  id               String        @id @default(uuid())
   title            String
   description      String
-  remediation      String?  @db.Text
+  remediation      String?       @db.Text
   affectedResource String?
   cvssScore        Float?
   severity         Severity
   status           FindingStatus @default(OPEN)
   auditId          String
-  audit            Audit    @relation(fields: [auditId], references: [id])
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  audit            Audit         @relation(fields: [auditId], references: [id])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  // Audit Fields
+  createdById      String?
+  createdBy        User?         @relation("CreatedFindings", fields: [createdById], references: [id])
+  updatedById      String?
+  updatedBy        User?         @relation("UpdatedFindings", fields: [updatedById], references: [id])
 }
 
 model Report {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  auditId     String
+  audit       Audit    @relation(fields: [auditId], references: [id])
+  createdAt   DateTime @default(now())
+  
+  // Audit Fields
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("CreatedReports", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?    @relation("UpdatedReports", fields: [updatedById], references: [id])
+}
+
+model AuditLog {
   id        String   @id @default(uuid())
-  title     String
-  content   String   @db.Text
-  auditId   String
-  audit     Audit    @relation(fields: [auditId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, LOGIN_FAILED
+  entity    String   // Audit, Finding, Report, User
+  entityId  String?
+  details   String?  @db.Text // JSON string of changes or details
+  ipAddress String?
+  userAgent String?
   createdAt DateTime @default(now())
 }
 

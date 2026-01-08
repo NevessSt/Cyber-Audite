@@ -10,6 +10,9 @@ import AuditList from './pages/AuditList';
 import CreateAudit from './pages/CreateAudit';
 import AuditDetails from './pages/AuditDetails';
 import CreateFinding from './pages/CreateFinding';
+import AdminDashboard from './pages/AdminDashboard';
+import UserManagement from './pages/UserManagement';
+import CreateProject from './pages/CreateProject';
 
 const App: React.FC = () => {
   return (
@@ -26,6 +29,9 @@ const App: React.FC = () => {
               <Route path="/audits/new" element={<CreateAudit />} />
               <Route path="/audits/:id" element={<AuditDetails />} />
               <Route path="/audits/:id/findings/new" element={<CreateFinding />} />
+              <Route path="/projects/new" element={<CreateProject />} />
+              <Route path="/admin/logs" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<UserManagement />} />
             </Route>
           </Route>
 
