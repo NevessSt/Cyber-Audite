@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(AUDITOR)
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projects  Project[]
+  audits    Audit[]
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  clientName  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  audits      Audit[]
+}
+
+model Audit {
+  id        String    @id @default(uuid())
+  name      String
+  status    AuditStatus @default(PLANNED)
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id])
+  auditorId String
+  auditor   User      @relation(fields: [auditorId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  findings  Finding[]
+  reports   Report[]
+}
+
+model Finding {
+  id               String   @id @default(uuid())
+  title            String
+  description      String
+  remediation      String?  @db.Text
+  affectedResource String?
+  cvssScore        Float?
+  severity         Severity
+  status           FindingStatus @default(OPEN)
+  auditId          String
+  audit            Audit    @relation(fields: [auditId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+  auditId   String
+  audit     Audit    @relation(fields: [auditId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  AUDITOR
+  VIEWER
+}
+
+enum AuditStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum FindingStatus {
+  OPEN
+  REMEDIATED
+  ACCEPTED
+  FALSE_POSITIVE
+}
