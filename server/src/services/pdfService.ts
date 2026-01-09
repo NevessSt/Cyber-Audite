@@ -1,22 +1,21 @@
 import PDFDocument from 'pdfkit';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
 
 const prisma = new PrismaClient();
 
 export const generateAuditPDF = async (auditId: string): Promise<Buffer> => {
-  const audit = await prisma.audit.findUnique({
+  const audit = await prisma.auditScan.findUnique({
     where: { id: auditId },
     include: {
       project: true,
       auditor: true,
-      findings: true
+      findings: true,
+      riskSummary: true
     }
   });
 
   if (!audit) {
-    throw new Error('Audit not found');
+    throw new Error('Audit Scan not found');
   }
 
   return new Promise((resolve, reject) => {
@@ -36,6 +35,9 @@ export const generateAuditPDF = async (auditId: string): Promise<Buffer> => {
     doc.text(`Client: ${audit.project.clientName}`);
     doc.text(`Date: ${new Date().toLocaleDateString()}`);
     doc.text(`Auditor: ${audit.auditor.name}`);
+    if (audit.riskSummary) {
+      doc.text(`Risk Score: ${audit.riskSummary.riskScore}`);
+    }
     doc.moveDown();
     
     // --- Divider ---
@@ -64,23 +66,34 @@ export const generateAuditPDF = async (auditId: string): Promise<Buffer> => {
 
     audit.findings.forEach((finding, i) => {
       // Title with Severity Color (Text representation for now)
-      doc.fontSize(14).font('Helvetica-Bold').text(`${i + 1}. ${finding.title} [${finding.severity}]`);
-      doc.font('Helvetica');
-      doc.fontSize(12);
+      let color = 'black';
+      if (finding.severity === 'CRITICAL') color = 'red';
+      if (finding.severity === 'HIGH') color = 'orange';
+      
+      doc.fillColor(color).fontSize(14).font('Helvetica-Bold').text(`${i + 1}. ${finding.title} [${finding.severity}]`);
+      doc.fillColor('black').font('Helvetica').fontSize(12);
+      
+      doc.moveDown(0.5);
+      doc.text(`Category: ${finding.owaspCategory}`);
+      doc.text(`Impact: ${finding.impact}`);
       
       doc.moveDown(0.5);
       doc.text('Description:', { underline: true });
       doc.text(finding.description);
       
-      if (finding.remediation) {
+      if (finding.recommendation) {
         doc.moveDown(0.5);
-        doc.text('Remediation:', { underline: true });
-        doc.text(finding.remediation);
+        doc.text('Recommendation:', { underline: true });
+        doc.text(finding.recommendation);
       }
       
+      if (finding.affectedFileOrRoute) {
+         doc.moveDown(0.5);
+         doc.text(`Affected Resource: ${finding.affectedFileOrRoute}`);
+      }
+
       doc.moveDown(0.5);
       doc.text(`Status: ${finding.status}`);
-      doc.text(`CVSS: ${finding.cvssScore || 'N/A'}`);
       
       doc.moveDown();
       doc.moveTo(50, doc.y).lineTo(550, doc.y).dash(5, { space: 5 }).stroke().undash();

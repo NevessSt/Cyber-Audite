@@ -9,7 +9,7 @@ export const downloadReportPDF = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
 
     // Authorization Check
-    const audit = await prisma.audit.findUnique({ where: { id } });
+    const audit = await prisma.auditScan.findUnique({ where: { id } });
     
     if (!audit) {
       return res.status(404).json({ error: 'Audit not found' });
@@ -21,7 +21,7 @@ export const downloadReportPDF = async (req: AuthRequest, res: Response) => {
 
     const pdfBuffer = await generateAuditPDF(id);
 
-    await logAction(req.user!.userId, 'PDF_DOWNLOAD', 'Audit', id, { filename: `audit-report-${id}.pdf` }, req);
+    await logAction(req.user!.userId, 'PDF_DOWNLOAD', 'AuditScan', id, { filename: `audit-report-${id}.pdf` }, req);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=audit-report-${id}.pdf`);

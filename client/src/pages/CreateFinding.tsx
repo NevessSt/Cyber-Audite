@@ -4,18 +4,33 @@ import { findingService } from '../services/findingService';
 import { aiService } from '../services/aiService';
 import { Sparkles } from 'lucide-react';
 
+const OWASP_CATEGORIES = [
+  'A01:2021-Broken Access Control',
+  'A02:2021-Cryptographic Failures',
+  'A03:2021-Injection',
+  'A04:2021-Insecure Design',
+  'A05:2021-Security Misconfiguration',
+  'A06:2021-Vulnerable and Outdated Components',
+  'A07:2021-Identification and Authentication Failures',
+  'A08:2021-Software and Data Integrity Failures',
+  'A09:2021-Security Logging and Monitoring Failures',
+  'A10:2021-Server-Side Request Forgery (SSRF)',
+  'Other'
+];
+
 const CreateFinding: React.FC = () => {
   const { id: auditId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState<string | null>(null); // 'description' | 'remediation' | null
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    remediation: '',
-    affectedResource: '',
-    cvssScore: '',
+    recommendation: '',
+    affectedFileOrRoute: '',
+    owaspCategory: 'A01:2021-Broken Access Control',
     severity: 'MEDIUM',
+    impact: '',
     status: 'OPEN'
   });
 
@@ -37,15 +52,15 @@ const CreateFinding: React.FC = () => {
     }
   };
 
-  const handleAiRemediate = async () => {
+  const handleAiRecommendation = async () => {
     if (!formData.title || !formData.description) return;
-    setAiLoading('remediation');
+    setAiLoading('recommendation');
     try {
-      const remediation = await aiService.suggestRemediation(formData.title, formData.description);
-      setFormData(prev => ({ ...prev, remediation }));
+      const recommendation = await aiService.suggestRemediation(formData.title, formData.description);
+      setFormData(prev => ({ ...prev, recommendation }));
     } catch (error) {
       console.error('AI Error:', error);
-      alert('Failed to generate remediation');
+      alert('Failed to generate recommendation');
     } finally {
       setAiLoading(null);
     }
@@ -59,9 +74,7 @@ const CreateFinding: React.FC = () => {
     try {
       await findingService.create({
         ...formData,
-        cvssScore: formData.cvssScore ? parseFloat(formData.cvssScore) : undefined,
-        auditId,
-        severity: formData.severity as any,
+        auditScanId: auditId,
       });
       navigate(`/audits/${auditId}`);
     } catch (error) {
@@ -89,45 +102,59 @@ const CreateFinding: React.FC = () => {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Severity</label>
-          <select
-            name="severity"
-            value={formData.severity}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-          >
-            <option value="CRITICAL">Critical</option>
-            <option value="HIGH">High</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="LOW">Low</option>
-            <option value="INFO">Info</option>
-          </select>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Severity</label>
+            <select
+              name="severity"
+              value={formData.severity}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            >
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">OWASP Category</label>
+            <select
+              name="owaspCategory"
+              value={formData.owaspCategory}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            >
+              {OWASP_CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">CVSS Score (0-10)</label>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="10"
-            name="cvssScore"
-            value={formData.cvssScore}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Affected Resource (URL/Path)</label>
+          <label className="block text-sm font-medium text-gray-700">Affected File/Route</label>
           <input
             type="text"
-            name="affectedResource"
-            value={formData.affectedResource}
+            name="affectedFileOrRoute"
+            value={formData.affectedFileOrRoute}
             onChange={handleChange}
+            placeholder="/src/controllers/auth.ts or /api/login"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
           />
+        </div>
+
+        <div>
+            <label className="block text-sm font-medium text-gray-700">Impact</label>
+            <textarea
+              name="impact"
+              rows={2}
+              value={formData.impact}
+              onChange={handleChange}
+              placeholder="What is the business or security impact?"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            />
         </div>
 
         <div>
@@ -155,21 +182,21 @@ const CreateFinding: React.FC = () => {
 
         <div>
           <div className="flex justify-between items-center mb-1">
-            <label className="block text-sm font-medium text-gray-700">Remediation</label>
+            <label className="block text-sm font-medium text-gray-700">Recommendation</label>
             <button
               type="button"
-              onClick={handleAiRemediate}
-              disabled={aiLoading === 'remediation' || !formData.title}
+              onClick={handleAiRecommendation}
+              disabled={aiLoading === 'recommendation' || !formData.title}
               className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
             >
               <Sparkles className="w-3 h-3" />
-              {aiLoading === 'remediation' ? 'Generating...' : 'AI Suggest'}
+              {aiLoading === 'recommendation' ? 'Generating...' : 'AI Suggest'}
             </button>
           </div>
           <textarea
-            name="remediation"
+            name="recommendation"
             rows={4}
-            value={formData.remediation}
+            value={formData.recommendation}
             onChange={handleChange}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
           />

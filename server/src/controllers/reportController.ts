@@ -8,7 +8,7 @@ export const generateReport = async (req: AuthRequest, res: Response) => {
     const { auditId } = req.body;
 
     // 1. Authorization Check
-    const audit = await prisma.audit.findUnique({
+    const audit = await prisma.auditScan.findUnique({
       where: { id: auditId },
       include: {
         project: true,
@@ -18,7 +18,7 @@ export const generateReport = async (req: AuthRequest, res: Response) => {
     });
 
     if (!audit) {
-      return res.status(404).json({ error: 'Audit not found' });
+      return res.status(404).json({ error: 'Audit Scan not found' });
     }
 
     if (req.user?.role !== 'ADMIN' && audit.auditorId !== req.user?.userId) {
@@ -44,8 +44,10 @@ export const generateReport = async (req: AuthRequest, res: Response) => {
     reportContent += `## Detailed Findings\n`;
     audit.findings.forEach((finding, index) => {
       reportContent += `### ${index + 1}. ${finding.title} (${finding.severity})\n`;
+      reportContent += `**Category:** ${finding.owaspCategory}\n`;
       reportContent += `**Description:** ${finding.description}\n`;
-      reportContent += `**Remediation:** ${finding.remediation || 'N/A'}\n\n`;
+      reportContent += `**Impact:** ${finding.impact}\n`;
+      reportContent += `**Recommendation:** ${finding.recommendation || 'N/A'}\n\n`;
     });
 
     // 3. Save Report
@@ -53,7 +55,7 @@ export const generateReport = async (req: AuthRequest, res: Response) => {
       data: {
         title: `${audit.name} - Final Report`,
         content: reportContent,
-        auditId: audit.id,
+        auditScanId: audit.id,
         createdById: req.user?.userId,
       }
     });
@@ -72,15 +74,15 @@ export const getReportsByAudit = async (req: AuthRequest, res: Response) => {
     const { auditId } = req.params;
 
     // Authorization Check
-    const audit = await prisma.audit.findUnique({ where: { id: auditId } });
-    if (!audit) return res.status(404).json({ error: 'Audit not found' });
+    const audit = await prisma.auditScan.findUnique({ where: { id: auditId } });
+    if (!audit) return res.status(404).json({ error: 'Audit Scan not found' });
 
     if (req.user?.role !== 'ADMIN' && audit.auditorId !== req.user?.userId) {
       return res.status(403).json({ error: 'Forbidden: You do not have access to this audit' });
     }
 
     const reports = await prisma.report.findMany({
-      where: { auditId },
+      where: { auditScanId: auditId },
       orderBy: { createdAt: 'desc' }
     });
     res.json(reports);

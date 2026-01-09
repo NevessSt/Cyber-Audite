@@ -130,12 +130,27 @@ const AuditDetails: React.FC = () => {
                     </span>
                     <div>
                       <h3 className="text-sm font-medium text-gray-900">{finding.title}</h3>
-                      <p className="text-sm text-gray-500 truncate max-w-md">{finding.description}</p>
+                      <p className="text-xs text-gray-500 font-mono mt-1">{finding.owaspCategory}</p>
+                      <p className="text-sm text-gray-500 mt-1">{finding.description}</p>
+                      
+                      <div className="mt-2 text-sm">
+                        <p><span className="font-medium text-gray-700">Impact:</span> {finding.impact}</p>
+                        <p><span className="font-medium text-gray-700">File/Route:</span> <code className="bg-gray-100 px-1 rounded">{finding.affectedFileOrRoute}</code></p>
+                        <div className="mt-1">
+                          <span className="font-medium text-gray-700">Recommendation:</span>
+                          <p className="mt-1 text-gray-600 bg-gray-50 p-2 rounded text-sm">{finding.recommendation}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>CVSS: {finding.cvssScore || 'N/A'}</span>
-                    <span>{finding.status}</span>
+                  <div className="flex items-center gap-4 text-sm text-gray-500 self-start">
+                    <span className={`px-2 py-1 rounded text-xs font-medium border ${
+                      finding.status === 'OPEN' ? 'bg-red-50 text-red-700 border-red-200' :
+                      finding.status === 'FIXED' ? 'bg-green-50 text-green-700 border-green-200' :
+                      'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}>
+                      {finding.status}
+                    </span>
                   </div>
                 </div>
               </li>

@@ -5,46 +5,45 @@ import { logAction } from '../services/auditLogService';
 
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, clientName, description } = req.body;
+    const { name, clientName, description, sourcePath, url } = req.body;
     
     if (!name || !clientName) {
       return res.status(400).json({ error: 'Name and Client Name are required' });
     }
 
-    const project = await prisma.project.create({
+    const project = await prisma.auditProject.create({
       data: {
         name,
         clientName,
         description,
+        sourcePath,
+        url,
         userId: req.user!.userId, // Created by current user
       },
     });
 
-    await logAction(req.user!.userId, 'PROJECT_CREATE', 'Project', project.id, { name, clientName }, req);
+    await logAction(req.user!.userId, 'PROJECT_CREATE', 'AuditProject', project.id, { name, clientName }, req);
 
     res.status(201).json(project);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error creating project' });
   }
 };
 
 export const getProjects = async (req: AuthRequest, res: Response) => {
   try {
-    // Admins see all. Users see projects they created OR projects they have audits in.
-    // For simplicity: Users see all projects (as they are usually internal resources).
-    // Or stricter: Users see projects they created.
-    // Let's go with: All authenticated users can list projects (to select one when creating audit).
-    
-    const projects = await prisma.project.findMany({
+    const projects = await prisma.auditProject.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { name: true, email: true } },
-        _count: { select: { audits: true } }
+        _count: { select: { scans: true } }
       }
     });
 
     res.json(projects);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error fetching projects' });
   }
 };

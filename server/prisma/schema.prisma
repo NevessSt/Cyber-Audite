@@ -7,116 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  password        String
-  role            Role      @default(AUDITOR)
-  name            String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  // Relations
-  projects        Project[]
-  audits          Audit[]
-  auditLogs       AuditLog[]
-  
-  // Audit Trails (Created/Updated by this user)
-  createdAudits   Audit[]   @relation("CreatedAudits")
-  updatedAudits   Audit[]   @relation("UpdatedAudits")
-  createdFindings Finding[] @relation("CreatedFindings")
-  updatedFindings Finding[] @relation("UpdatedFindings")
-  createdReports  Report[]  @relation("CreatedReports")
-  updatedReports  Report[]  @relation("UpdatedReports")
-}
-
-model Project {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  clientName  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  audits      Audit[]
-}
-
-model Audit {
-  id          String      @id @default(uuid())
-  name        String
-  status      AuditStatus @default(PLANNED)
-  projectId   String
-  project     Project     @relation(fields: [projectId], references: [id])
-  auditorId   String
-  auditor     User        @relation(fields: [auditorId], references: [id])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
-  // Audit Fields
-  createdById String?
-  createdBy   User?       @relation("CreatedAudits", fields: [createdById], references: [id])
-  updatedById String?
-  updatedBy   User?       @relation("UpdatedAudits", fields: [updatedById], references: [id])
-
-  findings    Finding[]
-  reports     Report[]
-}
-
-model Finding {
-  id               String        @id @default(uuid())
-  title            String
-  description      String
-  remediation      String?       @db.Text
-  affectedResource String?
-  cvssScore        Float?
-  severity         Severity
-  status           FindingStatus @default(OPEN)
-  auditId          String
-  audit            Audit         @relation(fields: [auditId], references: [id])
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  // Audit Fields
-  createdById      String?
-  createdBy        User?         @relation("CreatedFindings", fields: [createdById], references: [id])
-  updatedById      String?
-  updatedBy        User?         @relation("UpdatedFindings", fields: [updatedById], references: [id])
-}
-
-model Report {
-  id          String   @id @default(uuid())
-  title       String
-  content     String   @db.Text
-  auditId     String
-  audit       Audit    @relation(fields: [auditId], references: [id])
-  createdAt   DateTime @default(now())
-  
-  // Audit Fields
-  updatedAt   DateTime @updatedAt
-  createdById String?
-  createdBy   User?    @relation("CreatedReports", fields: [createdById], references: [id])
-  updatedById String?
-  updatedBy   User?    @relation("UpdatedReports", fields: [updatedById], references: [id])
-}
-
-model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  action    String   // CREATE, UPDATE, DELETE, LOGIN, LOGIN_FAILED
-  entity    String   // Audit, Finding, Report, User
-  entityId  String?
-  details   String?  @db.Text // JSON string of changes or details
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-}
-
 enum Role {
   ADMIN
   AUDITOR
-  VIEWER
+  CLIENT
 }
 
 enum AuditStatus {
@@ -131,12 +25,137 @@ enum Severity {
   HIGH
   MEDIUM
   LOW
-  INFO
 }
 
 enum FindingStatus {
   OPEN
-  REMEDIATED
-  ACCEPTED
+  FIXED
   FALSE_POSITIVE
+  IGNORED
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  role            Role      @default(AUDITOR)
+  name            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  projects        AuditProject[]
+  audits          AuditScan[]
+  auditLogs       AuditLog[]
+  
+  // Audit Trails
+  createdAudits   AuditScan[]   @relation("CreatedAudits")
+  updatedAudits   AuditScan[]   @relation("UpdatedAudits")
+  createdFindings AuditFinding[] @relation("CreatedFindings")
+  updatedFindings AuditFinding[] @relation("UpdatedFindings")
+  createdReports  Report[]  @relation("CreatedReports")
+  updatedReports  Report[]  @relation("UpdatedReports")
+}
+
+model AuditProject {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  clientName  String
+  sourcePath  String?     // Path to source code on disk
+  url         String?     // URL for DAST (future)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  scans       AuditScan[]
+}
+
+model AuditScan {
+  id          String      @id @default(uuid())
+  name        String
+  status      AuditStatus @default(PLANNED)
+  projectId   String
+  project     AuditProject @relation(fields: [projectId], references: [id])
+  auditorId   String
+  auditor     User        @relation(fields: [auditorId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Audit Fields
+  createdById String?
+  createdBy   User?       @relation("CreatedAudits", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?       @relation("UpdatedAudits", fields: [updatedById], references: [id])
+
+  findings    AuditFinding[]
+  riskSummary RiskSummary?
+  reports     Report[]
+}
+
+model AuditFinding {
+  id                  String        @id @default(uuid())
+  title               String
+  description         String
+  owaspCategory       String
+  severity            Severity
+  impact              String
+  recommendation      String        // Renamed from remediation to match requirements
+  affectedFileOrRoute String        // Renamed from affectedResource
+  status              FindingStatus @default(OPEN)
+  
+  auditScanId         String
+  auditScan           AuditScan     @relation(fields: [auditScanId], references: [id])
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  // Audit Fields
+  createdById         String?
+  createdBy   User?       @relation("CreatedFindings", fields: [createdById], references: [id])
+  updatedById         String?
+  updatedBy   User?       @relation("UpdatedFindings", fields: [updatedById], references: [id])
+}
+
+model RiskSummary {
+  id            String    @id @default(uuid())
+  auditScanId   String    @unique
+  auditScan     AuditScan @relation(fields: [auditScanId], references: [id])
+  
+  riskScore     Float
+  criticalCount Int
+  highCount     Int
+  mediumCount   Int
+  lowCount      Int
+  
+  createdAt     DateTime  @default(now())
+}
+
+model Report {
+  id          String    @id @default(uuid())
+  title       String
+  content     String    @db.Text
+  auditScanId String
+  auditScan   AuditScan @relation(fields: [auditScanId], references: [id])
+  createdAt   DateTime  @default(now())
+  
+  // Audit Fields
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  createdBy   User?     @relation("CreatedReports", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?     @relation("UpdatedReports", fields: [updatedById], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 }

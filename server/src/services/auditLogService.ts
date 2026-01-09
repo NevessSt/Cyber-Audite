@@ -7,7 +7,7 @@ export const logAction = async (
   userId: string,
   action: string,
   entity: string,
-  entityId: string | null,
+  entityId: string, // Changed from string | null to string (Strict)
   details: any,
   req?: Request
 ) => {
@@ -28,11 +28,7 @@ export const logAction = async (
     });
   } catch (error) {
     console.error('Failed to write audit log:', error);
-    // Do not throw, so main flow isn't interrupted? 
-    // For a strict audit tool, maybe we SHOULD throw if logging fails.
-    // But for availability, usually we log error and continue.
-    // User rule: "Strict". If audit log fails, the action should probably fail.
-    // I'll re-throw for strictness.
-    throw new Error('Audit Logging Failed');
+    // Strict Mode: If logging fails, the action MUST fail.
+    throw new Error('Audit Logging Failed: Action cannot be performed without audit trail.');
   }
 };

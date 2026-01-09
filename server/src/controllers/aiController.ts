@@ -10,7 +10,7 @@ export const refineFindingText = async (req: AuthRequest, res: Response) => {
     
     const refined = await aiService.refineDescription(text);
 
-    await logAction(req.user!.userId, 'AI_REFINE', 'System', null, { length: text.length }, req);
+    await logAction(req.user!.userId, 'AI_REFINE', 'System', 'AI_SERVICE', { length: text.length }, req);
 
     res.json({ refined });
   } catch (error) {
@@ -25,7 +25,7 @@ export const suggestRemediation = async (req: AuthRequest, res: Response) => {
 
     const remediation = await aiService.generateRemediation(title, description);
 
-    await logAction(req.user!.userId, 'AI_REMEDIATE', 'System', null, { title }, req);
+    await logAction(req.user!.userId, 'AI_REMEDIATE', 'System', 'AI_SERVICE', { title }, req);
 
     res.json({ remediation });
   } catch (error) {
