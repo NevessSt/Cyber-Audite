@@ -21,7 +21,27 @@ export const downloadReportPDF = async (req: AuthRequest, res: Response) => {
 
     const pdfBuffer = await generateAuditPDF(id);
 
-    await logAction(req.user!.userId, 'PDF_DOWNLOAD', 'AuditScan', id, { filename: `audit-report-${id}.pdf` }, req);
+    // Save Snapshot (Version Control)
+    const snapshotCount = await prisma.reportSnapshot.count({ where: { auditScanId: id } });
+    await prisma.reportSnapshot.create({
+        data: {
+            auditScanId: id,
+            title: `Audit Report v${snapshotCount + 1}`,
+            version: snapshotCount + 1,
+            pdfContent: pdfBuffer, // Store BLOB (suitable for internal, single-tenant tool)
+            createdById: req.user!.userId
+        }
+    });
+
+    // Update Workflow Status
+    if (audit.status === 'REVIEW' || audit.status === 'IN_PROGRESS') {
+         await prisma.auditScan.update({
+            where: { id },
+            data: { status: 'REPORT_GENERATED' }
+         });
+    }
+
+    await logAction(req.user!.userId, 'PDF_DOWNLOAD', 'AuditScan', id, { filename: `audit-report-${id}.pdf`, version: snapshotCount + 1 }, req);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=audit-report-${id}.pdf`);

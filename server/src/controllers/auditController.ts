@@ -1,32 +1,53 @@
 import { Response } from 'express';
+import { z } from 'zod';
 import prisma from '../services/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { logAction } from '../services/auditLogService';
 import { AuditEngine } from '../audit-engine';
+import { AuditStatus } from '@prisma/client';
+
+// --- VALIDATION SCHEMAS ---
+
+const createAuditSchema = z.object({
+  name: z.string().min(3).max(100),
+  projectId: z.string().uuid(),
+  auditorId: z.string().uuid().optional(),
+  scanScope: z.string().optional(),
+});
+
+const updateStatusSchema = z.object({
+  status: z.enum(['PLANNED', 'SCOPING', 'IN_PROGRESS', 'REVIEW', 'REPORT_GENERATED', 'COMPLETED', 'ARCHIVED']),
+});
+
+// --- CONTROLLERS ---
 
 // Step 1: Create Audit Scan (Planning Phase)
 export const createAudit = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, projectId, auditorId } = req.body;
+    // 1. Validate Input
+    const validated = createAuditSchema.parse(req.body);
+    const { name, projectId, auditorId, scanScope } = validated;
     
-    // Authorization
+    // 2. Authorization (RBAC)
     if (auditorId && auditorId !== req.user?.userId && req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Forbidden: Cannot assign audit to another user' });
+      return res.status(403).json({ error: 'Forbidden: Only Admins can assign audits to others' });
     }
 
     const assignedAuditorId = auditorId || req.user?.userId;
 
-    // Verify Project exists
+    // 3. Verify Project
     const project = await prisma.auditProject.findUnique({ where: { id: projectId } });
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
+    // 4. Create Scan Record
     const scan = await prisma.auditScan.create({
       data: {
         name,
         projectId,
         auditorId: assignedAuditorId!,
         createdById: req.user?.userId,
-        status: 'PLANNED'
+        status: 'PLANNED',
+        scanScope: scanScope || project.scope // Inherit scope if not provided
       },
     });
 
@@ -34,6 +55,9 @@ export const createAudit = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(scan);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: (error as any).errors });
+    }
     console.error(error);
     res.status(500).json({ error: 'Error creating audit scan' });
   }
@@ -56,13 +80,17 @@ export const runAuditScan = async (req: AuthRequest, res: Response) => {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
+    // STATE CHECK: Can only run if PLANNED or SCOPING
+    if (!['PLANNED', 'SCOPING', 'IN_PROGRESS'].includes(scan.status)) {
+        return res.status(400).json({ error: `Cannot run scan. Current status: ${scan.status}` });
+    }
+
     // Update status to IN_PROGRESS
     await prisma.auditScan.update({
         where: { id },
         data: { status: 'IN_PROGRESS' }
     });
 
-    // Determine target path
     const targetPath = scan.project.sourcePath;
     if (!targetPath) {
         return res.status(400).json({ error: 'Project has no source path defined' });
@@ -71,10 +99,9 @@ export const runAuditScan = async (req: AuthRequest, res: Response) => {
     // --- EXECUTE ENGINE ---
     const results = await AuditEngine.runScan(targetPath);
 
-    // Store Findings
-    // We use a transaction to ensure integrity
+    // Store Findings Transactionally
     await prisma.$transaction(async (tx) => {
-        // Clear previous findings if any (for re-scans)
+        // Clear previous findings (if re-running)
         await tx.auditFinding.deleteMany({ where: { auditScanId: id } });
 
         // Insert new findings
@@ -89,12 +116,14 @@ export const runAuditScan = async (req: AuthRequest, res: Response) => {
                     recommendation: finding.recommendation,
                     affectedFileOrRoute: finding.affectedFileOrRoute,
                     auditScanId: id,
-                    createdById: req.user!.userId
+                    createdById: req.user!.userId,
+                    status: 'OPEN', // Default status
+                    aiGenerated: false // Engine findings are deterministic, not AI
                 }
             });
         }
 
-        // Create/Update Risk Summary
+        // Update Risk Summary
         await tx.riskSummary.upsert({
             where: { auditScanId: id },
             create: {
@@ -114,20 +143,63 @@ export const runAuditScan = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // Update Scan Status
+        // CRITICAL: Move to REVIEW, NOT COMPLETED. Humans must verify.
         await tx.auditScan.update({
             where: { id },
-            data: { status: 'COMPLETED' }
+            data: { status: 'REVIEW' }
         });
     });
 
     await logAction(req.user!.userId, 'AUDIT_RUN', 'AuditScan', id, { findingCount: results.findings.length }, req);
 
-    res.json({ message: 'Scan completed successfully', summary: results.summary });
+    res.json({ message: 'Scan completed. Please review findings.', summary: results.summary, status: 'REVIEW' });
   } catch (error) {
     console.error('Scan failed:', error);
+    // Revert status if failed
+    await prisma.auditScan.update({ where: { id: req.params.id }, data: { status: 'PLANNED' } }); 
     res.status(500).json({ error: 'Error running audit scan' });
   }
+};
+
+// Step 3: Manual Status Transition (Enforce Workflow)
+export const updateAuditStatus = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const validated = updateStatusSchema.parse(req.body);
+        const newStatus = validated.status as AuditStatus;
+
+        const scan = await prisma.auditScan.findUnique({ where: { id } });
+        if (!scan) return res.status(404).json({ error: 'Scan not found' });
+
+        // Valid Transitions
+        const validTransitions: Record<AuditStatus, AuditStatus[]> = {
+            'PLANNED': ['SCOPING', 'IN_PROGRESS'],
+            'SCOPING': ['IN_PROGRESS', 'PLANNED'],
+            'IN_PROGRESS': ['REVIEW'], // Only system should trigger this, but manual override allowed for stuck jobs
+            'REVIEW': ['REPORT_GENERATED', 'IN_PROGRESS'], // Go back to progress if re-scan needed
+            'REPORT_GENERATED': ['COMPLETED', 'REVIEW'],
+            'COMPLETED': ['ARCHIVED', 'REPORT_GENERATED'], // Can re-open if needed
+            'ARCHIVED': ['COMPLETED']
+        };
+
+        if (!validTransitions[scan.status].includes(newStatus) && req.user?.role !== 'ADMIN') {
+            return res.status(400).json({ 
+                error: `Invalid status transition from ${scan.status} to ${newStatus}` 
+            });
+        }
+
+        const updated = await prisma.auditScan.update({
+            where: { id },
+            data: { status: newStatus }
+        });
+
+        await logAction(req.user!.userId, 'AUDIT_STATUS_CHANGE', 'AuditScan', id, { old: scan.status, new: newStatus }, req);
+
+        res.json(updated);
+    } catch (error) {
+        if (error instanceof z.ZodError) return res.status(400).json({ error: (error as any).errors });
+        res.status(500).json({ error: 'Failed to update status' });
+    }
 };
 
 export const getAudits = async (req: AuthRequest, res: Response) => {
@@ -146,6 +218,7 @@ export const getAudits = async (req: AuthRequest, res: Response) => {
         },
         riskSummary: true
       },
+      orderBy: { updatedAt: 'desc' }
     });
     res.json(scans);
   } catch (error) {
@@ -161,7 +234,9 @@ export const getAuditById = async (req: AuthRequest, res: Response) => {
       include: {
         project: true,
         auditor: { select: { id: true, name: true, email: true } },
-        findings: true,
+        findings: {
+            orderBy: { severity: 'asc' } // Critical first (enum order might need check)
+        },
         riskSummary: true
       }
     });

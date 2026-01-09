@@ -15,7 +15,10 @@ enum Role {
 
 enum AuditStatus {
   PLANNED
+  SCOPING
   IN_PROGRESS
+  REVIEW
+  REPORT_GENERATED
   COMPLETED
   ARCHIVED
 }
@@ -25,13 +28,16 @@ enum Severity {
   HIGH
   MEDIUM
   LOW
+  INFO
 }
 
 enum FindingStatus {
   OPEN
-  FIXED
+  IN_REVIEW
+  CONFIRMED
   FALSE_POSITIVE
-  IGNORED
+  FIXED
+  ACCEPTED_RISK
 }
 
 model User {
@@ -47,6 +53,8 @@ model User {
   projects        AuditProject[]
   audits          AuditScan[]
   auditLogs       AuditLog[]
+  findingHistory  FindingHistory[]
+  reportSnapshots ReportSnapshot[]
   
   // Audit Trails
   createdAudits   AuditScan[]   @relation("CreatedAudits")
@@ -62,8 +70,16 @@ model AuditProject {
   name        String
   description String?
   clientName  String
+  
+  // Scope Definition (Mandatory for real audits)
+  scope       String?     @db.Text // "Main API, Admin Panel, excluding 3rd party libs"
   sourcePath  String?     // Path to source code on disk
-  url         String?     // URL for DAST (future)
+  url         String?     // URL for DAST
+  
+  startDate   DateTime?
+  endDate     DateTime?
+  isArchived  Boolean     @default(false)
+
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   userId      String
@@ -75,10 +91,17 @@ model AuditScan {
   id          String      @id @default(uuid())
   name        String
   status      AuditStatus @default(PLANNED)
+  
+  // Audit Context
+  scanScope   String?     @db.Text // Specific scope for this scan iteration
+  metadata    Json?       // Environment details, tools used, git commit hash
+  isLocked    Boolean     @default(false) // Locks findings after report generation
+  
   projectId   String
   project     AuditProject @relation(fields: [projectId], references: [id])
   auditorId   String
   auditor     User        @relation(fields: [auditorId], references: [id])
+  
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   
@@ -88,9 +111,10 @@ model AuditScan {
   updatedById String?
   updatedBy   User?       @relation("UpdatedAudits", fields: [updatedById], references: [id])
 
-  findings    AuditFinding[]
-  riskSummary RiskSummary?
-  reports     Report[]
+  findings        AuditFinding[]
+  riskSummary     RiskSummary?
+  reports         Report[]
+  reportSnapshots ReportSnapshot[]
 }
 
 model AuditFinding {
@@ -100,10 +124,19 @@ model AuditFinding {
   owaspCategory       String
   severity            Severity
   impact              String
-  recommendation      String        // Renamed from remediation to match requirements
-  affectedFileOrRoute String        // Renamed from affectedResource
+  recommendation      String
+  affectedFileOrRoute String
   status              FindingStatus @default(OPEN)
   
+  // Professional Audit Fields
+  severityJustification   String?   @db.Text // Why is this High? (Manual override)
+  riskRatingExplanation   String?   @db.Text // AI or Human explanation of the risk
+  proofOfExploit          String?   @db.Text // Steps to reproduce
+  
+  // AI Safety & Process
+  aiGenerated             Boolean   @default(false)
+  humanApproved           Boolean   @default(false) // Mandatory check before reporting
+
   auditScanId         String
   auditScan           AuditScan     @relation(fields: [auditScanId], references: [id])
   
@@ -115,6 +148,23 @@ model AuditFinding {
   createdBy   User?       @relation("CreatedFindings", fields: [createdById], references: [id])
   updatedById         String?
   updatedBy   User?       @relation("UpdatedFindings", fields: [updatedById], references: [id])
+  
+  history             FindingHistory[]
+}
+
+// IMMUTABLE AUDIT TRAIL
+model FindingHistory {
+  id          String       @id @default(uuid())
+  findingId   String
+  finding     AuditFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  
+  action      String       // CREATE, UPDATE_SEVERITY, STATUS_CHANGE
+  changes     Json         // { old: "HIGH", new: "LOW" }
+  reason      String?      // Mandatory reason for downgrading severity
+  
+  timestamp   DateTime     @default(now())
 }
 
 model RiskSummary {
@@ -127,6 +177,7 @@ model RiskSummary {
   highCount     Int
   mediumCount   Int
   lowCount      Int
+  infoCount     Int       @default(0)
   
   createdAt     DateTime  @default(now())
 }
@@ -134,17 +185,36 @@ model RiskSummary {
 model Report {
   id          String    @id @default(uuid())
   title       String
-  content     String    @db.Text
+  content     String    @db.Text // JSON or HTML content
   auditScanId String
   auditScan   AuditScan @relation(fields: [auditScanId], references: [id])
   createdAt   DateTime  @default(now())
   
-  // Audit Fields
   updatedAt   DateTime  @updatedAt
   createdById String?
   createdBy   User?     @relation("CreatedReports", fields: [createdById], references: [id])
   updatedById String?
   updatedBy   User?     @relation("UpdatedReports", fields: [updatedById], references: [id])
+}
+
+// VERSIONED REPORT SNAPSHOTS
+model ReportSnapshot {
+  id          String    @id @default(uuid())
+  auditScanId String
+  auditScan   AuditScan @relation(fields: [auditScanId], references: [id])
+  
+  version     Int       @default(1)
+  title       String
+  
+  // Storage
+  s3Key       String?   // For secure cloud storage
+  pdfContent  Bytes?    // For local storage (Database BLOB - suitable for internal tool)
+  
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  
+  isFinal     Boolean   @default(false)
 }
 
 model AuditLog {

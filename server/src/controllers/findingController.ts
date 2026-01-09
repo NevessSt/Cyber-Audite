@@ -79,7 +79,8 @@ export const updateFinding = async (req: AuthRequest, res: Response) => {
         impact, 
         recommendation, 
         affectedFileOrRoute, 
-        status 
+        status,
+        justification 
     } = req.body;
 
     // Authorization Check via Finding -> Audit
@@ -94,25 +95,60 @@ export const updateFinding = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Forbidden: You do not have access to this finding' });
     }
 
-    const finding = await prisma.auditFinding.update({
-      where: { id },
-      data: {
-        title,
-        description,
-        owaspCategory,
-        severity,
-        impact,
-        recommendation,
-        affectedFileOrRoute,
-        status,
-        updatedById: req.user?.userId, // Set updater
-      }
+    // MANDATORY JUSTIFICATION for Severity Reduction
+    const severityLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+    const oldSeverityIndex = severityLevels.indexOf(existingFinding.severity);
+    const newSeverityIndex = severityLevels.indexOf(severity);
+
+    if (newSeverityIndex < oldSeverityIndex && !justification) {
+        return res.status(400).json({ error: 'Severity reduction requires a justification reason.' });
+    }
+
+    // Transaction: Update + History Log
+    const finding = await prisma.$transaction(async (tx) => {
+        const updated = await tx.auditFinding.update({
+            where: { id },
+            data: {
+                title,
+                description,
+                owaspCategory,
+                severity,
+                impact,
+                recommendation,
+                affectedFileOrRoute,
+                status,
+                updatedById: req.user?.userId,
+            }
+        });
+
+        // Create History Record
+        await tx.findingHistory.create({
+            data: {
+                findingId: id,
+                userId: req.user!.userId,
+                action: 'UPDATE',
+                changes: {
+                    from: {
+                        severity: existingFinding.severity,
+                        status: existingFinding.status
+                    },
+                    to: {
+                        severity: severity,
+                        status: status
+                    }
+                },
+                reason: justification || 'Routine update'
+            }
+        });
+
+        return updated;
     });
 
     await logAction(req.user!.userId, 'FINDING_UPDATE', 'AuditFinding', finding.id, { changes: req.body }, req);
 
     res.json(finding);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error updating finding' });
   }
 };
