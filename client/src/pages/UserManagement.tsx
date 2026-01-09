@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { userService, User } from '../services/userService';
-import { Users, Shield, AlertTriangle } from 'lucide-react';
+import { userService } from '../services/userService';
+import type { User } from '../services/userService';
+import { Users } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);

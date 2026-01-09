@@ -18,6 +18,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+type JwtPayload = {
+  exp: number;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,13 +32,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (token && storedUser) {
       try {
-        const decodedToken: any = jwtDecode(token);
+        const decodedToken = jwtDecode<JwtPayload>(token);
         if (decodedToken.exp * 1000 > Date.now()) {
           setUser(JSON.parse(storedUser));
         } else {
           logout();
         }
-      } catch (error) {
+      } catch {
         logout();
       }
     }

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { auditService, Audit } from '../services/auditService';
-import { findingService, Finding } from '../services/findingService';
-import { reportService, Report } from '../services/reportService';
-import { Plus, FileText, AlertTriangle, CheckCircle, ArrowLeft, Download } from 'lucide-react';
+import { auditService } from '../services/auditService';
+import type { Audit } from '../services/auditService';
+import { findingService } from '../services/findingService';
+import type { Finding } from '../services/findingService';
+import { reportService } from '../services/reportService';
+import type { Report } from '../services/reportService';
+import { Plus, FileText, ArrowLeft, Download } from 'lucide-react';
 import api from '../services/api';
 
 const AuditDetails: React.FC = () => {

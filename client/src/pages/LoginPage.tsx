@@ -3,6 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 
+type ErrorResponse = {
+  error?: string;
+};
+
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,8 +20,17 @@ const LoginPage: React.FC = () => {
       const response = await api.post('/users/login', { email, password });
       login(response.data.token, response.data.user);
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to login');
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: unknown }).response === 'object' &&
+        (err as { response?: { data?: ErrorResponse } }).response?.data?.error
+          ? (err as { response?: { data?: ErrorResponse } }).response?.data?.error
+          : 'Failed to login';
+
+      setError(message);
     }
   };
 

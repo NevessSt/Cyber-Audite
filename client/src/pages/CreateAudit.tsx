@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
-import { projectService, Project } from '../services/projectService';
+import { projectService } from '../services/projectService';
+import type { Project } from '../services/projectService';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus } from 'lucide-react';
 

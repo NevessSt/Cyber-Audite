@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { auditLogService, AuditLog } from '../services/auditLogService';
+import { auditLogService } from '../services/auditLogService';
+import type { AuditLog } from '../services/auditLogService';
 import { Shield, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {

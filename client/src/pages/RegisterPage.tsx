@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 
+type ErrorResponse = {
+  error?: string;
+};
+
 const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,8 +18,17 @@ const RegisterPage: React.FC = () => {
     try {
       await api.post('/users/register', { email, password, name });
       navigate('/login');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to register');
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: unknown }).response === 'object' &&
+        (err as { response?: { data?: ErrorResponse } }).response?.data?.error
+          ? (err as { response?: { data?: ErrorResponse } }).response?.data?.error
+          : 'Failed to register';
+
+      setError(message);
     }
   };
 

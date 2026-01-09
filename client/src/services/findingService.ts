@@ -18,9 +18,21 @@ export interface AuditFinding {
 // Alias for compatibility if needed, but better to switch to AuditFinding
 export type Finding = AuditFinding; 
 
+export type CreateFindingInput = {
+  title: string;
+  description: string;
+  owaspCategory: string;
+  severity: AuditFinding['severity'];
+  impact: string;
+  recommendation: string;
+  affectedFileOrRoute: string;
+  status?: AuditFinding['status'];
+  auditScanId: string;
+};
+
 export const findingService = {
-  create: async (data: any) => {
-    const response = await api.post('/findings', data);
+  create: async (data: CreateFindingInput) => {
+    const response = await api.post<AuditFinding>('/findings', data);
     return response.data;
   },
 
@@ -34,7 +46,7 @@ export const findingService = {
   },
 
   update: async (id: string, data: Partial<AuditFinding>) => {
-    const response = await api.put(`/findings/${id}`, data);
+    const response = await api.put<AuditFinding>(`/findings/${id}`, data);
     return response.data;
   },
 
