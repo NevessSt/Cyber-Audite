@@ -7,10 +7,10 @@ type ErrorResponse = {
 };
 
 const RegisterPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [name, setName] = useState<string>('');
+  const [error, setError] = useState<string>('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,15 +19,18 @@ const RegisterPage: React.FC = () => {
       await api.post('/users/register', { email, password, name });
       navigate('/login');
     } catch (err: unknown) {
-      const message =
+      let message = 'Failed to register';
+      if (
         typeof err === 'object' &&
         err !== null &&
         'response' in err &&
-        typeof (err as { response?: unknown }).response === 'object' &&
-        (err as { response?: { data?: ErrorResponse } }).response?.data?.error
-          ? (err as { response?: { data?: ErrorResponse } }).response?.data?.error
-          : 'Failed to register';
-
+        typeof (err as { response?: unknown }).response === 'object'
+      ) {
+        const responseData = (err as { response?: { data?: ErrorResponse } }).response?.data;
+        if (responseData && typeof responseData.error === 'string') {
+          message = responseData.error;
+        }
+      }
       setError(message);
     }
   };

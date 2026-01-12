@@ -2,6 +2,7 @@ import { Response } from 'express';
 import prisma from '../services/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { logAction } from '../services/auditLogService';
+import { Prisma } from '@prisma/client';
 
 export const createFinding = async (req: AuthRequest, res: Response) => {
   try {
@@ -105,7 +106,7 @@ export const updateFinding = async (req: AuthRequest, res: Response) => {
     }
 
     // Transaction: Update + History Log
-    const finding = await prisma.$transaction(async (tx) => {
+    const finding = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const updated = await tx.auditFinding.update({
             where: { id },
             data: {

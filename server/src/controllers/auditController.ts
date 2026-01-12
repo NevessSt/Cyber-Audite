@@ -4,7 +4,7 @@ import prisma from '../services/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { logAction } from '../services/auditLogService';
 import { AuditEngine } from '../audit-engine';
-import { AuditStatus } from '@prisma/client';
+import { AuditStatus, Prisma } from '@prisma/client';
 
 // --- VALIDATION SCHEMAS ---
 

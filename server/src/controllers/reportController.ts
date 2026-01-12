@@ -2,6 +2,7 @@ import { Response } from 'express';
 import prisma from '../services/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { logAction } from '../services/auditLogService';
+import { AuditFinding } from '@prisma/client';
 
 export const generateReport = async (req: AuthRequest, res: Response) => {
   try {
@@ -42,7 +43,7 @@ export const generateReport = async (req: AuthRequest, res: Response) => {
     reportContent += `- Medium: ${mediumCount}\n\n`;
 
     reportContent += `## Detailed Findings\n`;
-    audit.findings.forEach((finding, index) => {
+    audit.findings.forEach((finding: AuditFinding, index: number) => {
       reportContent += `### ${index + 1}. ${finding.title} (${finding.severity})\n`;
       reportContent += `**Category:** ${finding.owaspCategory}\n`;
       reportContent += `**Description:** ${finding.description}\n`;

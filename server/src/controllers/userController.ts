@@ -18,6 +18,10 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
+    // Check if this is the first user
+    const userCount = await prisma.user.count();
+    const role = userCount === 0 ? 'ADMIN' : 'AUDITOR';
+
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
@@ -25,6 +29,7 @@ export const register = async (req: Request, res: Response) => {
         email,
         password: hashedPassword,
         name,
+        role,
       },
     });
 

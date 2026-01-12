@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, AuditFinding } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -64,7 +64,7 @@ export const generateAuditPDF = async (auditId: string): Promise<Buffer> => {
     doc.fontSize(16).text('Detailed Findings');
     doc.moveDown();
 
-    audit.findings.forEach((finding, i) => {
+    audit.findings.forEach((finding: AuditFinding, i: number) => {
       // Title with Severity Color (Text representation for now)
       let color = 'black';
       if (finding.severity === 'CRITICAL') color = 'red';

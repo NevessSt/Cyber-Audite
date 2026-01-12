@@ -1,0 +1,59 @@
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cyber_audit_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: cyber_audit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cyber_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d cyber_audit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  server:
+    build: ./server
+    container_name: cyber_audit_server
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/cyber_audit
+      - PORT=3001
+      - JWT_SECRET=dev_secret_change_me_in_prod_at_least_32_chars_long
+      # Add your OpenAI Key here or use a .env file
+      - OPENAI_API_KEY=${OPENAI_API_KEY} 
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cyber_network
+
+  # Frontend UI
+  client:
+    build: 
+      context: ./client
+      args:
+        - VITE_API_URL=http://localhost:3001/api
+    container_name: cyber_audit_client
+    ports:
+      - "5173:80" # Map host 5173 to container 80 (Nginx)
+    depends_on:
+      - server
+    networks:
+      - cyber_network
+
+volumes:
+  postgres_data:
+
+networks:
+  cyber_network:
+    driver: bridge

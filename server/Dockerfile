@@ -1,0 +1,38 @@
+# Build Stage
+FROM node:20 AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY .npmrc ./
+COPY prisma ./prisma/
+
+# Install dependencies
+RUN npm install --no-audit --no-fund --prefer-offline
+
+# Copy source code
+COPY . .
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Build TypeScript
+RUN npm run build
+
+# Production Stage
+FROM node:20
+
+WORKDIR /app
+
+# Copy built artifacts and dependencies
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma
+
+# Expose port
+EXPOSE 3001
+
+# Start command (Run migrations + start server)
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]

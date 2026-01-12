@@ -8,9 +8,9 @@ type ErrorResponse = {
 };
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [error, setError] = useState<string>('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -21,15 +21,18 @@ const LoginPage: React.FC = () => {
       login(response.data.token, response.data.user);
       navigate('/');
     } catch (err: unknown) {
-      const message =
+      let message = 'Failed to login';
+      if (
         typeof err === 'object' &&
         err !== null &&
         'response' in err &&
-        typeof (err as { response?: unknown }).response === 'object' &&
-        (err as { response?: { data?: ErrorResponse } }).response?.data?.error
-          ? (err as { response?: { data?: ErrorResponse } }).response?.data?.error
-          : 'Failed to login';
-
+        typeof (err as { response?: unknown }).response === 'object'
+      ) {
+        const responseData = (err as { response?: { data?: ErrorResponse } }).response?.data;
+        if (responseData && typeof responseData.error === 'string') {
+          message = responseData.error;
+        }
+      }
       setError(message);
     }
   };
