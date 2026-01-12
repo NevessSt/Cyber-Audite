@@ -42,17 +42,37 @@ services:
     build: 
       context: ./client
       args:
-        - VITE_API_URL=http://localhost:3001/api
+        - VITE_API_URL=https://api.audit.example.com/api
     container_name: cyber_audit_client
-    ports:
-      - "5173:80" # Map host 5173 to container 80 (Nginx)
+    expose:
+      - "80"
     depends_on:
+      - server
+    networks:
+      - cyber_network
+
+  # Caddy Reverse Proxy (Automatic HTTPS)
+  caddy:
+    image: caddy:2-alpine
+    container_name: cyber_audit_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - client
       - server
     networks:
       - cyber_network
 
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   cyber_network:

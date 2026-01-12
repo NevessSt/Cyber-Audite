@@ -1,0 +1,11 @@
+{
+    email admin@example.com
+}
+
+audit.example.com {
+    reverse_proxy client:80
+}
+
+api.audit.example.com {
+    reverse_proxy server:3001
+}
