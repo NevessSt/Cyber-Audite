@@ -2,16 +2,24 @@ import { Request, Response } from 'express';
 import prisma from '../services/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import { logAction } from '../services/auditLogService';
 import { AuthRequest } from '../middleware/auth';
 
+const registerSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  name: z.string().optional(),
+});
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(1, 'Password is required'),
+});
+
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, name } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
+    const { email, password, name } = registerSchema.parse(req.body);
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -37,6 +45,9 @@ export const register = async (req: Request, res: Response) => {
 
     res.status(201).json({ message: 'User created successfully', userId: user.id });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.issues[0].message });
+    }
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -44,11 +55,7 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
+    const { email, password } = loginSchema.parse(req.body);
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -78,6 +85,9 @@ export const login = async (req: Request, res: Response) => {
 
     res.json({ token, user: { id: user.id, email: user.email, role: user.role, name: user.name } });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.issues[0].message });
+    }
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }

@@ -26,10 +26,22 @@ const App: React.FC = () => {
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/audits" element={<AuditList />} />
-              <Route path="/audits/new" element={<CreateAudit />} />
               <Route path="/audits/:id" element={<AuditDetails />} />
+            </Route>
+          </Route>
+
+          {/* Auditor & Admin Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'AUDITOR']} />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/audits/new" element={<CreateAudit />} />
               <Route path="/audits/:id/findings/new" element={<CreateFinding />} />
               <Route path="/projects/new" element={<CreateProject />} />
+            </Route>
+          </Route>
+
+          {/* Admin Only Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+            <Route element={<DashboardLayout />}>
               <Route path="/admin/logs" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<UserManagement />} />
             </Route>
