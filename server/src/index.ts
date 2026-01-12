@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { validateEnv } from './config/env';
+import { apiLimiter, authLimiter } from './middleware/rateLimit';
 import userRoutes from './routes/userRoutes';
 import auditRoutes from './routes/auditRoutes';
 import findingRoutes from './routes/findingRoutes';
@@ -25,6 +26,11 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Rate Limiting
+app.use('/api', apiLimiter); // Apply general limit to all API routes
+app.use('/api/users/login', authLimiter); // Stricter limit for login
+app.use('/api/users/register', authLimiter); // Stricter limit for register
 
 // Routes
 app.use('/api/users', userRoutes);
