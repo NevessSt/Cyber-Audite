@@ -7,9 +7,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
   try {
     const { name, clientName, description, sourcePath, url } = req.body;
     
-    if (!name || !clientName) {
-      return res.status(400).json({ error: 'Name and Client Name are required' });
-    }
+    // Validation handled by middleware
 
     const project = await prisma.auditProject.create({
       data: {

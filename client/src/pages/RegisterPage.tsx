@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
+import { authService } from '../services/authService';
 
 type ErrorResponse = {
   error?: string;
@@ -16,7 +16,7 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/users/register', { email, password, name });
+      await authService.register({ email, password, name });
       navigate('/login');
     } catch (err: unknown) {
       let message = 'Failed to register';

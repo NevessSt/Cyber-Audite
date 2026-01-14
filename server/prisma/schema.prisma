@@ -47,6 +47,7 @@ model User {
   password        String
   role            Role      @default(AUDITOR)
   name            String?
+  refreshToken    String?   // For JWT refresh flow
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   

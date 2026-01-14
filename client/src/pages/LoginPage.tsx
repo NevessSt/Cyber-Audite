@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import { authService } from '../services/authService';
 
 type ErrorResponse = {
   error?: string;
@@ -17,8 +17,8 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await api.post('/users/login', { email, password });
-      login(response.data.token, response.data.user);
+      const response = await authService.login({ email, password });
+      login(response);
       navigate('/');
     } catch (err: unknown) {
       let message = 'Failed to login';

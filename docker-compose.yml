@@ -25,6 +25,9 @@ services:
     container_name: cyber_audit_server
     ports:
       - "3001:3001"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/cyber_audit
       - PORT=3001

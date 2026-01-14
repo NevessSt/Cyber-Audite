@@ -1,32 +1,17 @@
 import { Response } from 'express';
-import { z } from 'zod';
 import prisma from '../services/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { logAction } from '../services/auditLogService';
 import { AuditEngine } from '../audit-engine';
 import { AuditStatus, Prisma } from '@prisma/client';
 
-// --- VALIDATION SCHEMAS ---
-
-const createAuditSchema = z.object({
-  name: z.string().min(3).max(100),
-  projectId: z.string().uuid(),
-  auditorId: z.string().uuid().optional(),
-  scanScope: z.string().optional(),
-});
-
-const updateStatusSchema = z.object({
-  status: z.enum(['PLANNED', 'SCOPING', 'IN_PROGRESS', 'REVIEW', 'REPORT_GENERATED', 'COMPLETED', 'ARCHIVED']),
-});
-
 // --- CONTROLLERS ---
 
 // Step 1: Create Audit Scan (Planning Phase)
 export const createAudit = async (req: AuthRequest, res: Response) => {
   try {
-    // 1. Validate Input
-    const validated = createAuditSchema.parse(req.body);
-    const { name, projectId, auditorId, scanScope } = validated;
+    // 1. Get Validated Input
+    const { name, projectId, auditorId, scanScope } = req.body;
     
     // 2. Authorization (RBAC)
     if (auditorId && auditorId !== req.user?.userId && req.user?.role !== 'ADMIN') {

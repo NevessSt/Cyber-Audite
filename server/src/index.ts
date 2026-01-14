@@ -24,7 +24,10 @@ const PORT = process.env.PORT || 3001;
 
 // Security Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true,
+}));
 app.use(express.json());
 
 // Rate Limiting
@@ -46,6 +49,10 @@ app.use('/api/audit-logs', auditLogRoutes);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Error Handling Middleware (MUST be last)
+import { errorHandler } from './middleware/errorHandler';
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
