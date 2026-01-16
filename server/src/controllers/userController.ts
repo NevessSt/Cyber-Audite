@@ -5,20 +5,9 @@ import { logAction } from '../services/auditLogService';
 import { AuthRequest } from '../middleware/auth';
 import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/token';
 
-const registerSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().optional(),
-});
-
-const loginSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(1, 'Password is required'),
-});
-
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, name } = registerSchema.parse(req.body);
+    const { email, password, name } = req.body as { email: string; password: string; name?: string };
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -51,7 +40,7 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body as { email: string; password: string };
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
@@ -86,9 +75,6 @@ export const login = async (req: Request, res: Response) => {
       user: { id: user.id, email: user.email, role: user.role, name: user.name } 
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.issues[0].message });
-    }
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }

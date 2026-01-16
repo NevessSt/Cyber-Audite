@@ -40,9 +40,6 @@ export const createAudit = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(scan);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: (error as any).errors });
-    }
     console.error(error);
     res.status(500).json({ error: 'Error creating audit scan' });
   }
@@ -150,8 +147,13 @@ export const runAuditScan = async (req: AuthRequest, res: Response) => {
 export const updateAuditStatus = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const validated = updateStatusSchema.parse(req.body);
-        const newStatus = validated.status as AuditStatus;
+        const { status } = req.body as { status?: AuditStatus };
+
+        if (!status) {
+          return res.status(400).json({ error: 'Status is required' });
+        }
+
+        const newStatus = status as AuditStatus;
 
         const scan = await prisma.auditScan.findUnique({ where: { id } });
         if (!scan) return res.status(404).json({ error: 'Scan not found' });
@@ -182,7 +184,6 @@ export const updateAuditStatus = async (req: AuthRequest, res: Response) => {
 
         res.json(updated);
     } catch (error) {
-        if (error instanceof z.ZodError) return res.status(400).json({ error: (error as any).errors });
         res.status(500).json({ error: 'Failed to update status' });
     }
 };

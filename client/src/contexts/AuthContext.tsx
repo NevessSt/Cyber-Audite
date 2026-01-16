@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { authService, LoginResponse } from '../services/authService';
+import { authService } from '../services/authService';
+import type { LoginResponse } from '../services/authService';
 
 interface User {
   id: string;
