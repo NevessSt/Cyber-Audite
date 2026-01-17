@@ -1,3 +1,5 @@
+﻿# syntax=docker/dockerfile:1.6
+
 # Build Stage
 FROM node:20 AS builder
 
@@ -9,7 +11,8 @@ COPY .npmrc ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm install --no-audit --no-fund --prefer-offline
+RUN --mount=type=cache,target=/root/.npm \
+	npm ci --no-audit --no-fund
 
 # Copy source code
 COPY . .

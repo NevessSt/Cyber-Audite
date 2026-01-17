@@ -5,8 +5,8 @@ dotenv.config();
 
 // Initialize OpenAI
 const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+	? new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 10000 })
+	: null;
 
 // --- SAFETY CONFIGURATION ---
 
@@ -53,57 +53,64 @@ export const aiService = {
    * Refines the description of a finding to be more professional.
    * SAFETY: Strips PII before sending.
    */
-  refineDescription: async (text: string): Promise<string> => {
-    if (!openai) {
-      console.warn('OpenAI API key not found. Returning original text.');
-      return `[MOCK AI] Refined: ${text}`;
-    }
+	refineDescription: async (text: string): Promise<string> => {
+		if (!openai) {
+			return `[MOCK AI] Refined: ${text}`;
+		}
 
-    const safeInput = stripPII(text);
+		const safeInput = stripPII(text);
 
-    try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4', // Prefer GPT-4 for security accuracy
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPTS.REFINE },
-          { role: 'user', content: safeInput }
-        ],
-        temperature: 0.3, // Low temperature for deterministic output
-      });
+		try {
+			const response = await openai.chat.completions.create({
+				model: 'gpt-4',
+				messages: [
+					{ role: 'system', content: SYSTEM_PROMPTS.REFINE },
+					{ role: 'user', content: safeInput }
+				],
+				temperature: 0.3,
+			});
 
-      return response.choices[0]?.message?.content || text;
-    } catch (error) {
-      console.error('OpenAI API error:', error);
-      throw new Error('Failed to refine text');
-    }
-  },
+			const content = response.choices[0]?.message?.content;
+			if (typeof content === 'string' && content.trim().length > 0) {
+				return content;
+			}
+			return `[MOCK AI] Refined: ${text}`;
+		} catch (error) {
+			console.error('OpenAI API error:', error);
+			return `[MOCK AI] Refined: ${text}`;
+		}
+	},
 
   /**
    * Generates remediation steps based on the finding title and description.
    * SAFETY: Strips PII before sending.
    */
-  generateRemediation: async (title: string, description: string): Promise<string> => {
-    if (!openai) {
-      return `[MOCK AI] Remediation for "${title}":\n1. Update software.\n2. Verify configuration.`;
-    }
+	generateRemediation: async (title: string, description: string): Promise<string> => {
+		if (!openai) {
+			return `[MOCK AI] Remediation for "${title}":\n1. Update software.\n2. Verify configuration.`;
+		}
 
-    const safeTitle = stripPII(title);
-    const safeDesc = stripPII(description);
+		const safeTitle = stripPII(title);
+		const safeDesc = stripPII(description);
 
-    try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPTS.REMEDIATE },
-          { role: 'user', content: `Issue: ${safeTitle}\nContext: ${safeDesc}` }
-        ],
-        temperature: 0.3,
-      });
+		try {
+			const response = await openai.chat.completions.create({
+				model: 'gpt-4',
+				messages: [
+					{ role: 'system', content: SYSTEM_PROMPTS.REMEDIATE },
+					{ role: 'user', content: `Issue: ${safeTitle}\nContext: ${safeDesc}` }
+				],
+				temperature: 0.3,
+			});
 
-      return response.choices[0]?.message?.content || 'No remediation generated.';
-    } catch (error) {
-      console.error('OpenAI API error:', error);
-      throw new Error('Failed to generate remediation');
-    }
-  }
+			const content = response.choices[0]?.message?.content;
+			if (typeof content === 'string' && content.trim().length > 0) {
+				return content;
+			}
+			return `[MOCK AI] Remediation for "${title}":\n1. Update software.\n2. Verify configuration.`;
+		} catch (error) {
+			console.error('OpenAI API error:', error);
+			return `[MOCK AI] Remediation for "${title}":\n1. Update software.\n2. Verify configuration.`;
+		}
+	}
 };

@@ -1,3 +1,5 @@
+﻿# syntax=docker/dockerfile:1.6
+
 # Build Stage
 FROM node:20-alpine as builder
 
@@ -5,7 +7,8 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY .npmrc ./
-RUN npm install --no-audit --no-fund --prefer-offline
+RUN --mount=type=cache,target=/root/.npm \
+	npm ci --no-audit --no-fund
 
 COPY . .
 ARG VITE_API_URL
