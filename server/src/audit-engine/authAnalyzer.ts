@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { AuditFinding } from './types';
 import { walkFiles } from './utils/fileWalker';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export class AuthAnalyzer {
   static async scan(projectPath: string): Promise<AuditFinding[]> {
@@ -21,10 +21,13 @@ export class AuthAnalyzer {
       secretPatterns.forEach(pattern => {
         if (pattern.test(content)) {
           findings.push({
-            id: uuidv4(),
+            id: randomUUID(),
             title: 'Hardcoded Secret Detected',
             description: `A potential hardcoded secret or weak fallback was found matching pattern: ${pattern}`,
             owaspCategory: 'A07:2021-Identification and Authentication Failures',
+            owaspTop10: 'A07:2021-Identification and Authentication Failures',
+            iso27001Control: 'A.5.15; A.8.2',
+            nistCsfFunction: 'PR.AC; PR.DS',
             severity: 'CRITICAL',
             impact: 'Compromise of this secret allows attackers to forge tokens or access protected data.',
             recommendation: 'Use environment variables for all secrets. Remove hardcoded fallbacks.',
@@ -37,10 +40,13 @@ export class AuthAnalyzer {
       // 2. Check for Weak Hashing
       if (content.includes('crypto.createHash(\'md5\')') || content.includes('crypto.createHash(\'sha1\')')) {
         findings.push({
-          id: uuidv4(),
+          id: randomUUID(),
           title: 'Weak Hashing Algorithm',
           description: 'Usage of MD5 or SHA1 detected.',
           owaspCategory: 'A02:2021-Cryptographic Failures',
+          owaspTop10: 'A02:2021-Cryptographic Failures',
+          iso27001Control: 'A.5.13; A.8.24',
+          nistCsfFunction: 'PR.DS',
           severity: 'HIGH',
           impact: 'These algorithms are collision-prone and should not be used for security.',
           recommendation: 'Use SHA-256 or higher for hashing.',
@@ -52,11 +58,14 @@ export class AuthAnalyzer {
       // 3. Check for Basic Auth
       if (content.includes('BasicStrategy')) {
          findings.push({
-            id: uuidv4(),
+            id: randomUUID(),
             title: 'Basic Authentication Detected',
             description: 'Usage of HTTP Basic Auth detected.',
             owaspCategory: 'A07:2021-Identification and Authentication Failures',
-            severity: 'LOW', // Not necessarily bad, but worth noting
+            owaspTop10: 'A07:2021-Identification and Authentication Failures',
+            iso27001Control: 'A.5.15; A.8.23',
+            nistCsfFunction: 'PR.AC',
+            severity: 'LOW',
             impact: 'Basic Auth credentials are sent in base64. Ensure HTTPS is enforced.',
             recommendation: 'Ensure TLS is used. Consider upgrading to Token-based auth.',
             affectedFileOrRoute: file.replace(projectPath, ''),

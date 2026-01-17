@@ -60,6 +60,53 @@ export const generateAuditPDF = async (auditId: string): Promise<Buffer> => {
     doc.text(`- Low: ${low}`);
     doc.moveDown();
 
+    // --- Risk & Compliance Summary ---
+    doc.fontSize(16).text('Risk & Compliance Summary');
+    doc.moveDown(0.5);
+
+    if (audit.riskSummary) {
+      doc.fontSize(12).text(`Overall Risk Score: ${audit.riskSummary.riskScore.toFixed(2)}`);
+      doc.text(
+        `Severity Breakdown: Critical ${audit.riskSummary.criticalCount}, High ${audit.riskSummary.highCount}, Medium ${audit.riskSummary.mediumCount}, Low ${audit.riskSummary.lowCount}`,
+      );
+      doc.moveDown(0.5);
+    }
+
+    const owaspBuckets = new Map<string, number>();
+    const isoControls = new Set<string>();
+    const nistFunctions = new Set<string>();
+
+    audit.findings.forEach((finding: AuditFinding) => {
+      const owaspKey = finding.owaspTop10 || finding.owaspCategory;
+      owaspBuckets.set(owaspKey, (owaspBuckets.get(owaspKey) ?? 0) + 1);
+
+      if (finding.iso27001Control) isoControls.add(finding.iso27001Control);
+      if (finding.nistCsfFunction) nistFunctions.add(finding.nistCsfFunction);
+    });
+
+    doc.fontSize(12).text('OWASP Top 10 Coverage:');
+    owaspBuckets.forEach((count, category) => {
+      doc.text(`- ${category}: ${count} finding(s)`);
+    });
+
+    doc.moveDown(0.5);
+    doc.text('ISO 27001 Controls Touched:');
+    if (isoControls.size === 0) {
+      doc.text('- None explicitly mapped');
+    } else {
+      isoControls.forEach((control) => doc.text(`- ${control}`));
+    }
+
+    doc.moveDown(0.5);
+    doc.text('NIST CSF Functions Touched:');
+    if (nistFunctions.size === 0) {
+      doc.text('- None explicitly mapped');
+    } else {
+      nistFunctions.forEach((fn) => doc.text(`- ${fn}`));
+    }
+
+    doc.moveDown();
+
     // --- Findings ---
     doc.fontSize(16).text('Detailed Findings');
     doc.moveDown();

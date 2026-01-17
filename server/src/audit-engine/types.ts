@@ -5,6 +5,9 @@ export interface AuditFinding {
   title: string;
   description: string;
   owaspCategory: string;
+  owaspTop10?: string;
+  iso27001Control?: string;
+  nistCsfFunction?: string;
   severity: Severity;
   impact: string;
   recommendation: string;

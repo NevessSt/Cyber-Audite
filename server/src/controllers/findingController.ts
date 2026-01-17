@@ -10,6 +10,9 @@ export const createFinding = async (req: AuthRequest, res: Response) => {
         title, 
         description, 
         owaspCategory, 
+        owaspTop10,
+        iso27001Control,
+        nistCsfFunction,
         severity, 
         impact, 
         recommendation, 
@@ -30,12 +33,15 @@ export const createFinding = async (req: AuthRequest, res: Response) => {
         title,
         description,
         owaspCategory,
+        owaspTop10: owaspTop10 || owaspCategory,
+        iso27001Control,
+        nistCsfFunction,
         severity,
         impact,
         recommendation,
         affectedFileOrRoute,
         auditScanId,
-        createdById: req.user?.userId, // Set creator
+        createdById: req.user?.userId,
       }
     });
 
@@ -75,7 +81,10 @@ export const updateFinding = async (req: AuthRequest, res: Response) => {
     const { 
         title, 
         description, 
-        owaspCategory, 
+        owaspCategory,
+        owaspTop10,
+        iso27001Control,
+        nistCsfFunction,
         severity, 
         impact, 
         recommendation, 
@@ -113,6 +122,9 @@ export const updateFinding = async (req: AuthRequest, res: Response) => {
                 title,
                 description,
                 owaspCategory,
+                owaspTop10: owaspTop10 || owaspCategory,
+                iso27001Control,
+                nistCsfFunction,
                 severity,
                 impact,
                 recommendation,

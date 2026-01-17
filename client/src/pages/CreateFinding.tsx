@@ -33,6 +33,9 @@ const CreateFinding: React.FC = () => {
     recommendation: '',
     affectedFileOrRoute: '',
     owaspCategory: 'A01:2021-Broken Access Control',
+    owaspTop10: '',
+    iso27001Control: '',
+    nistCsfFunction: '',
     severity: 'MEDIUM',
     impact: '',
     status: 'OPEN'
@@ -137,6 +140,42 @@ const CreateFinding: React.FC = () => {
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">OWASP Top 10 Ref</label>
+            <input
+              type="text"
+              name="owaspTop10"
+              value={formData.owaspTop10}
+              onChange={handleChange}
+              placeholder="e.g. A01:2021"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">ISO 27001 Control</label>
+            <input
+              type="text"
+              name="iso27001Control"
+              value={formData.iso27001Control}
+              onChange={handleChange}
+              placeholder="e.g. A.8.24"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">NIST CSF Function</label>
+            <input
+              type="text"
+              name="nistCsfFunction"
+              value={formData.nistCsfFunction}
+              onChange={handleChange}
+              placeholder="e.g. PR.AC"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            />
           </div>
         </div>
 

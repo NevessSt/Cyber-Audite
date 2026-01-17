@@ -5,6 +5,9 @@ export interface AuditFinding {
   title: string;
   description: string;
   owaspCategory: string;
+  owaspTop10?: string;
+  iso27001Control?: string;
+  nistCsfFunction?: string;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
   impact: string;
   recommendation: string;
@@ -22,6 +25,9 @@ export type CreateFindingInput = {
   title: string;
   description: string;
   owaspCategory: string;
+  owaspTop10?: string;
+  iso27001Control?: string;
+  nistCsfFunction?: string;
   severity: AuditFinding['severity'];
   impact: string;
   recommendation: string;

@@ -12,6 +12,8 @@ import aiRoutes from './routes/aiRoutes';
 import pdfRoutes from './routes/pdfRoutes';
 import auditLogRoutes from './routes/auditLogRoutes';
 import projectRoutes from './routes/projectRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
+import riskRoutes from './routes/riskRoutes';
 
 // Load env vars
 dotenv.config();
@@ -44,6 +46,8 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/reports', pdfRoutes); // Note: /api/reports/:id/pdf handled here
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/risk', riskRoutes);
 
 // Basic Health Check
 app.get('/health', (req, res) => {

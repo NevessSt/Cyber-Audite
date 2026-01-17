@@ -124,6 +124,9 @@ model AuditFinding {
   title               String
   description         String
   owaspCategory       String
+  owaspTop10          String?
+  iso27001Control     String?
+  nistCsfFunction     String?
   severity            Severity
   impact              String
   recommendation      String

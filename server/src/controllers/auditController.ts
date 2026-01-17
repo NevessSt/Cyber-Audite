@@ -93,14 +93,17 @@ export const runAuditScan = async (req: AuthRequest, res: Response) => {
                     title: finding.title,
                     description: finding.description,
                     owaspCategory: finding.owaspCategory,
+                    owaspTop10: finding.owaspTop10 ?? finding.owaspCategory,
+                    iso27001Control: finding.iso27001Control ?? null,
+                    nistCsfFunction: finding.nistCsfFunction ?? null,
                     severity: finding.severity,
                     impact: finding.impact,
                     recommendation: finding.recommendation,
                     affectedFileOrRoute: finding.affectedFileOrRoute,
                     auditScanId: id,
                     createdById: req.user!.userId,
-                    status: 'OPEN', // Default status
-                    aiGenerated: false // Engine findings are deterministic, not AI
+                    status: 'OPEN',
+                    aiGenerated: false
                 }
             });
         }
