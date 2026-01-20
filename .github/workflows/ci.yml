@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Server CI
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Server Dependencies
+      run: |
+        cd server
+        npm ci
+
+    - name: Run Server Tests
+      run: |
+        cd server
+        npm test
+
+    - name: Build Server
+      run: |
+        cd server
+        npx prisma generate
+        npm run build
+
+    # Client CI
+    - name: Install Client Dependencies
+      run: |
+        cd client
+        npm ci
+
+    - name: Lint Client
+      run: |
+        cd client
+        npm run lint
+
+    - name: Build Client
+      run: |
+        cd client
+        npm run build
+
+    # Docker Build Verification
+    - name: Verify Docker Build
+      run: |
+        docker compose build

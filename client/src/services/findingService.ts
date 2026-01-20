@@ -1,5 +1,17 @@
 import api from './api';
 
+export interface FindingHistory {
+  id: string;
+  action: string;
+  changes: any;
+  reason?: string;
+  timestamp: string;
+  user: {
+    name: string | null;
+    email: string;
+  };
+}
+
 export interface AuditFinding {
   id: string;
   title: string;
@@ -16,6 +28,7 @@ export interface AuditFinding {
   auditScanId: string;
   createdAt: string;
   updatedAt: string;
+  history?: FindingHistory[];
 }
 
 // Alias for compatibility if needed, but better to switch to AuditFinding

@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+﻿﻿# syntax=docker/dockerfile:1.6
 
 # Build Stage
 FROM node:20-alpine as builder

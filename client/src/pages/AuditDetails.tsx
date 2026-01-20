@@ -337,6 +337,12 @@ const AuditDetails: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-gray-500 self-start">
+                    <button
+                      onClick={() => setExpandedFindingId(expandedFindingId === finding.id ? null : finding.id)}
+                      className="text-indigo-600 hover:text-indigo-900 text-xs font-medium"
+                    >
+                      {expandedFindingId === finding.id ? 'Hide History' : 'Show History'}
+                    </button>
                     <span className={`px-2 py-1 rounded text-xs font-medium border ${
                       finding.status === 'OPEN' ? 'bg-red-50 text-red-700 border-red-200' :
                       finding.status === 'FIXED' ? 'bg-green-50 text-green-700 border-green-200' :
@@ -346,6 +352,40 @@ const AuditDetails: React.FC = () => {
                     </span>
                   </div>
                 </div>
+                {expandedFindingId === finding.id && (
+                  <div className="mt-4 pl-4 border-l-2 border-gray-200">
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Audit Trail</h4>
+                    {!finding.history || finding.history.length === 0 ? (
+                      <p className="text-sm text-gray-500 italic">No history recorded.</p>
+                    ) : (
+                      <ul className="space-y-3">
+                        {finding.history.map((event) => (
+                          <li key={event.id} className="text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                {event.user?.name || event.user?.email || 'Unknown User'}
+                              </span>
+                              <span className="text-gray-500">
+                                {event.action.replace('_', ' ')}
+                              </span>
+                              <span className="text-gray-400 text-xs">
+                                {new Date(event.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            {event.reason && (
+                              <p className="text-gray-600 mt-1 text-xs">Reason: {event.reason}</p>
+                            )}
+                            {event.changes && Object.keys(event.changes).length > 0 && (
+                              <pre className="mt-1 bg-gray-100 p-2 rounded text-xs overflow-x-auto">
+                                {JSON.stringify(event.changes, null, 2)}
+                              </pre>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </li>
             ))
           )}

@@ -67,6 +67,12 @@ export const getFindingsByAudit = async (req: AuthRequest, res: Response) => {
 
     const findings = await prisma.auditFinding.findMany({
       where: { auditScanId: auditId },
+      include: {
+        history: {
+          include: { user: { select: { name: true, email: true } } },
+          orderBy: { timestamp: 'desc' }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
     res.json(findings);

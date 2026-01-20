@@ -68,6 +68,33 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link to="/projects/new" className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-500 transition-colors group">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+              <FolderPlus className="w-6 h-6 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-900">New Project</h3>
+              <p className="text-sm text-gray-500">Start a new client engagement</p>
+            </div>
+          </div>
+        </Link>
+        
+        <Link to="/audits/new" className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-500 transition-colors group">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
+              <Plus className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-900">New Audit Scan</h3>
+              <p className="text-sm text-gray-500">Create a scan for an existing project</p>
+            </div>
+          </div>
+        </Link>
+      </div>
+
       {/* Recent Activity Placeholder */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">

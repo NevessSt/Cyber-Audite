@@ -45,7 +45,7 @@ services:
     build: 
       context: ./client
       args:
-        - VITE_API_URL=https://api.audit.example.com/api
+        - VITE_API_URL=/api
     container_name: cyber_audit_client
     expose:
       - "80"

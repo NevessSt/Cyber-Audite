@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+﻿﻿# syntax=docker/dockerfile:1.6
 
 # Build Stage
 FROM node:20 AS builder
@@ -37,4 +37,4 @@ COPY --from=builder /app/prisma ./prisma
 # Expose port
 EXPOSE 3001
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
