@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
-import { validateEnv } from './config/env';
+import morgan from 'morgan';
+import { env } from './config/env'; // Validate env on import
 import { apiLimiter, authLimiter } from './middleware/rateLimit';
 import userRoutes from './routes/userRoutes';
 import auditRoutes from './routes/auditRoutes';
@@ -14,28 +14,27 @@ import auditLogRoutes from './routes/auditLogRoutes';
 import projectRoutes from './routes/projectRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import riskRoutes from './routes/riskRoutes';
-
-// Load env vars
-dotenv.config();
-
-// Validate Environment Variables
-validateEnv();
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = env.PORT;
 
 // Security Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: env.CORS_ORIGIN || env.CLIENT_URL, // Strict CORS
   credentials: true,
 }));
+
+// Request Logging
+app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
 app.use(express.json());
 
 // Rate Limiting
-app.use('/api', apiLimiter); // Apply general limit to all API routes
-app.use('/api/users/login', authLimiter); // Stricter limit for login
-app.use('/api/users/register', authLimiter); // Stricter limit for register
+app.use('/api/users/login', authLimiter);
+app.use('/api/users/register', authLimiter);
+app.use('/api', apiLimiter);
 
 // Routes
 app.use('/api/users', userRoutes);
@@ -44,7 +43,7 @@ app.use('/api/audits', auditRoutes);
 app.use('/api/findings', findingRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/reports', pdfRoutes); // Note: /api/reports/:id/pdf handled here
+app.use('/api/reports', pdfRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/risk', riskRoutes);
@@ -55,9 +54,9 @@ app.get('/health', (req, res) => {
 });
 
 // Error Handling Middleware (MUST be last)
-import { errorHandler } from './middleware/errorHandler';
 app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${env.NODE_ENV}`);
 });

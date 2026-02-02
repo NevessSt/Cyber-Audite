@@ -7,7 +7,10 @@
     "start": "ts-node src/index.ts",
     "dev": "nodemon src/index.ts",
     "build": "tsc",
-    "test": "jest"
+    "test": "jest",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -17,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@types/morgan": "^1.9.10",
     "@types/pdfkit": "^0.17.4",
     "@types/uuid": "^11.0.0",
     "bcryptjs": "^3.0.3",
@@ -26,6 +30,7 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
     "openai": "^6.15.0",
     "pdfkit": "^0.17.2",
     "uuid": "^13.0.0",

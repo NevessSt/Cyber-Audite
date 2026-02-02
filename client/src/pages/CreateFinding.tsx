@@ -26,6 +26,7 @@ const CreateFinding: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<Omit<CreateFindingInput, 'auditScanId'>>({
     title: '',
@@ -52,12 +53,17 @@ const CreateFinding: React.FC = () => {
   const handleAiRefine = async () => {
     if (!formData.description) return;
     setAiLoading('description');
+    setError(null);
     try {
       const refined = await aiService.refineText(formData.description);
       setFormData(prev => ({ ...prev, description: refined }));
-    } catch (error) {
-      console.error('AI Error:', error);
-      alert('Failed to refine text');
+    } catch (err: any) {
+      console.error('AI Error:', err);
+      if (err.response?.status === 503) {
+        setError('AI service is not configured on the server (Missing API Key).');
+      } else {
+        setError('Failed to refine text. Please try again.');
+      }
     } finally {
       setAiLoading(null);
     }
@@ -66,12 +72,17 @@ const CreateFinding: React.FC = () => {
   const handleAiRecommendation = async () => {
     if (!formData.title || !formData.description) return;
     setAiLoading('recommendation');
+    setError(null);
     try {
       const recommendation = await aiService.suggestRemediation(formData.title, formData.description);
       setFormData(prev => ({ ...prev, recommendation }));
-    } catch (error) {
-      console.error('AI Error:', error);
-      alert('Failed to generate recommendation');
+    } catch (err: any) {
+      console.error('AI Error:', err);
+      if (err.response?.status === 503) {
+        setError('AI service is not configured on the server (Missing API Key).');
+      } else {
+        setError('Failed to generate recommendation. Please try again.');
+      }
     } finally {
       setAiLoading(null);
     }
@@ -82,15 +93,16 @@ const CreateFinding: React.FC = () => {
     if (!auditId) return;
 
     setLoading(true);
+    setError(null);
     try {
       await findingService.create({
         ...formData,
         auditScanId: auditId,
       });
       navigate(`/audits/${auditId}`);
-    } catch (error) {
-      console.error('Error creating finding:', error);
-      alert('Failed to create finding');
+    } catch (err: any) {
+      console.error('Error creating finding:', err);
+      setError(err.response?.data?.error || 'Failed to create finding');
     } finally {
       setLoading(false);
     }
@@ -98,7 +110,14 @@ const CreateFinding: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Add New Finding</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Record New Finding</h1>
+      
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow rounded-lg p-6">
         
         <div>

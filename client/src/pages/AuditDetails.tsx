@@ -21,6 +21,7 @@ const AuditDetails: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [textFilter, setTextFilter] = useState<string>('');
+  const [expandedFindingId, setExpandedFindingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {

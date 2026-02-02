@@ -2,9 +2,14 @@ import { Response } from 'express';
 import { aiService } from '../services/aiService';
 import { AuthRequest } from '../middleware/auth';
 import { logAction } from '../services/auditLogService';
+import { env } from '../config/env';
 
 export const refineFindingText = async (req: AuthRequest, res: Response) => {
   try {
+    if (!env.OPENAI_API_KEY) {
+      return res.status(503).json({ error: "AI_NOT_CONFIGURED" });
+    }
+
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: 'Text is required' });
     
@@ -20,6 +25,10 @@ export const refineFindingText = async (req: AuthRequest, res: Response) => {
 
 export const suggestRemediation = async (req: AuthRequest, res: Response) => {
   try {
+    if (!env.OPENAI_API_KEY) {
+      return res.status(503).json({ error: "AI_NOT_CONFIGURED" });
+    }
+
     const { title, description } = req.body;
     if (!title || !description) return res.status(400).json({ error: 'Title and description required' });
 

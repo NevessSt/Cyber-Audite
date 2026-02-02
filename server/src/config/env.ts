@@ -1,36 +1,30 @@
+import { z } from 'zod';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const requiredEnvVars = [
-	'DATABASE_URL',
-	'JWT_SECRET',
-	'PORT',
-	'CLIENT_URL'
-];
+const envSchema = z.object({
+  DATABASE_URL: z.string().url(),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters long"),
+  PORT: z.string().default("3001").transform(Number),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  CLIENT_URL: z.string().default('http://localhost:5173'),
+  OPENAI_API_KEY: z.string().optional(),
+  CORS_ORIGIN: z.string().optional(),
+});
 
+const parseEnv = () => {
+  const parsed = envSchema.safeParse(process.env);
+
+  if (!parsed.success) {
+    console.error('❌ Invalid environment variables:', JSON.stringify(parsed.error.format(), null, 2));
+    process.exit(1);
+  }
+
+  return parsed.data;
+};
+
+export const env = parseEnv();
 export const validateEnv = () => {
-	const missingVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
-
-	if (missingVars.length > 0) {
-		console.error(`Missing required environment variables: ${missingVars.join(', ')}`);
-		process.exit(1);
-	}
-
-	// Strict check for JWT_SECRET length
-	if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
-		console.error('JWT_SECRET must be at least 32 characters long for security.');
-		process.exit(1);
-	}
-
-	const port = Number(process.env.PORT);
-	if (!Number.isInteger(port) || port <= 0) {
-		console.error('PORT must be a positive integer.');
-		process.exit(1);
-	}
-
-	if (process.env.NODE_ENV && !['development', 'test', 'production'].includes(process.env.NODE_ENV)) {
-		console.error('NODE_ENV must be one of development, test, production when set.');
-		process.exit(1);
-	}
+  // Already validated on import
 };

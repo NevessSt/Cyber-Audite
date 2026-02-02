@@ -20,11 +20,11 @@ export interface AuditFinding {
   owaspTop10?: string;
   iso27001Control?: string;
   nistCsfFunction?: string;
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
   impact: string;
   recommendation: string;
   affectedFileOrRoute: string;
-  status: 'OPEN' | 'FIXED' | 'FALSE_POSITIVE' | 'IGNORED';
+  status: 'OPEN' | 'IN_REVIEW' | 'CONFIRMED' | 'FALSE_POSITIVE' | 'FIXED' | 'ACCEPTED_RISK';
   auditScanId: string;
   createdAt: string;
   updatedAt: string;

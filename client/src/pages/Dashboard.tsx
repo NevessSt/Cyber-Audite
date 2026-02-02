@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Activity, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Activity, AlertTriangle, CheckCircle, Clock, FolderPlus, Plus } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
 import type { DashboardMetrics } from '../services/dashboardService';
 

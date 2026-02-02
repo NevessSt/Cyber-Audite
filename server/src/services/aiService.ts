@@ -1,11 +1,9 @@
 import OpenAI from 'openai';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { env } from '../config/env';
 
 // Initialize OpenAI
-const openai = process.env.OPENAI_API_KEY
-	? new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 10000 })
+const openai = env.OPENAI_API_KEY
+	? new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 10000 })
 	: null;
 
 // --- SAFETY CONFIGURATION ---

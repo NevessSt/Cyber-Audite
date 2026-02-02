@@ -3,82 +3,93 @@
 A secure, private cybersecurity audit management platform designed for professional auditors.
 Built with React (Frontend), Node.js (Backend), and PostgreSQL (Database).
 
-## Features
+## 🚀 Quick Start (Docker)
 
-- **Project Management**: Organize audits by Client/Project.
-- **Audit Workflows**: Create, manage, and track security audits.
-- **Finding Management**: Document vulnerabilities with CVSS scores and severity.
-- **AI Assistance**: Integrated ChatGPT for refining risk descriptions and suggesting remediations (Risk Explanation ONLY).
-- **Automated Reporting**: Generate PDF reports with executive summaries.
-- **Role-Based Access Control (RBAC)**: Strict separation between ADMIN and AUDITOR roles.
-- **Audit Trails**: Comprehensive logging of all user actions (Login, Create, Update, Delete).
-- **Security Hardening**:
-  - Secure Password Hashing (Bcrypt 12 rounds)
-  - JWT Authentication
-  - IDOR Prevention (Resource Ownership Checks)
-  - Environment Variable Validation
-
-## Architecture
-
-- **Frontend**: React, TypeScript, Tailwind CSS, Lucide Icons.
-- **Backend**: Node.js, Express, TypeScript.
-- **Database**: PostgreSQL (via Docker).
-- **ORM**: Prisma.
-- **Security**: Helmet, CORS, Bcrypt, JWT, Input Validation.
-
-## Setup & Installation
+The easiest way to run the application is using Docker Compose.
 
 ### 1. Prerequisites
-- Node.js (v18+)
-- Docker & Docker Compose
-- PostgreSQL (if not using Docker)
+- **Docker & Docker Compose**: Ensure Docker Desktop is running (works on Windows/Mac/Linux).
 
-### 2. Environment Configuration
-Create a `.env` file in the `server` directory:
-
-```env
-PORT=3001
-DATABASE_URL="postgresql://user:password@localhost:5432/cyber_audit?schema=public"
-JWT_SECRET="your-super-secure-secret-key-at-least-32-chars"
-OPENAI_API_KEY="your-openai-key-optional"
-```
-
-### 3. Database Setup (Docker)
-Start the PostgreSQL container:
-
+### 2. Environment Setup
+Copy the example environment files:
 ```bash
-cd server
-docker-compose up -d
+# From project root
+cp server/.env.example server/.env
+cp client/.env.example client/.env
 ```
 
-### 4. Database Migration
-Apply the database schema:
+**Required Configuration (`server/.env`):**
+- `DATABASE_URL`: Pre-configured for Docker (`postgresql://user:password@postgres:5432/cyber_audit`).
+- `JWT_SECRET`: Change this to a secure random string (min 32 chars).
+- `OPENAI_API_KEY` (Optional): Set your OpenAI key for AI risk explanations. If missing, AI features will be disabled (HTTP 503).
 
+### 3. Run Application
+Start the full stack (Database + API + Frontend + Proxy):
 ```bash
-cd server
-npm install
-npx prisma migrate dev --name init
+docker compose up -d --build
 ```
 
-### 5. Run Backend
-```bash
-cd server
-npm run dev
-```
+**Verification:**
+- **Frontend**: [http://localhost](http://localhost) (via Caddy Proxy)
+- **API Health**: [http://localhost/api/health](http://localhost/api/health)
+- **Database**: Port `5432` exposed locally.
 
-### 6. Run Frontend
-```bash
-cd client
-npm install
-npm run dev
-```
+### 4. Default Credentials (Seeded)
+The application automatically seeds a default admin user on first run:
+- **Email**: `admin@example.com`
+- **Password**: `adminpassword`
 
-## User Roles
+---
 
-- **ADMIN**: Full access to all projects, audits, users, and system logs. Can manage user roles.
-- **AUDITOR**: Can create projects and audits. Can only view/edit their own audits (or assigned ones).
+## 🛠 Manual Development
 
-## Security Notes
+If you want to run services individually without Docker Compose:
 
-- **Private Tool**: Designed for internal use. Do not expose public registration in production without additional safeguards (e.g., Admin Approval).
-- **Audit Logs**: All critical actions are logged to the `AuditLog` table and viewable by Admins.
+### Backend (`/server`)
+1.  **Install**: `npm install`
+2.  **Database**: Start a local Postgres or use the dev-db helper:
+    ```bash
+    docker compose -f docker-compose.dev-db.yml up -d
+    ```
+3.  **Env**: Update `.env` to point to localhost DB.
+4.  **Migrate & Seed**:
+    ```bash
+    npm run db:migrate  # Run migrations
+    npm run db:seed     # Seed demo data
+    ```
+5.  **Start**:
+    ```bash
+    npm run dev         # Start with nodemon
+    ```
+
+### Frontend (`/client`)
+1.  **Install**: `npm install`
+2.  **Start**:
+    ```bash
+    npm run dev         # Starts on http://localhost:5173
+    ```
+
+---
+
+## 🔒 Security Features
+
+- **Strict Environment Validation**: Server fails fast if required env vars (DB URL, JWT Secret) are missing.
+- **Reverse Proxy**: Caddy handles routing and can be configured for TLS.
+- **Security Headers**: `Helmet` configured for security best practices.
+- **Rate Limiting**: Strict limits on `/auth/login` and `/auth/register` to prevent brute-force.
+- **Input Validation**: `Zod` used for environment and request validation.
+- **CORS**: Strict CORS policy enforced via `CORS_ORIGIN`.
+
+## 📂 Project Structure
+
+- `docker-compose.yml`: Main production-ready composition.
+- `server/docker-compose.dev-db.yml`: Helper to run *only* the database for local dev.
+- `server/`: Node.js Express API.
+- `client/`: React + Vite Frontend.
+- `Caddyfile`: Reverse proxy configuration.
+
+## ⚠️ Troubleshooting
+
+- **AI Not Working?** Ensure `OPENAI_API_KEY` is set in `server/.env`.
+- **Database Connection Error?** Ensure the postgres container is healthy.
+- **Ports in Use?** The app uses ports `80` (Client/Proxy), `3001` (Server), and `5432` (DB).

@@ -85,6 +85,27 @@ async function main() {
   });
 
   console.log('Findings created.');
+
+  // 5. Create Report
+  const report = await prisma.report.create({
+    data: {
+      title: 'Preliminary Security Audit Report',
+      content: JSON.stringify({
+        executiveSummary: 'This audit identified 2 key vulnerabilities affecting the platform security posture.',
+        methodology: 'Hybrid assessment using automated scanning and manual code review.',
+        findingsSummary: {
+          critical: 0,
+          high: 1,
+          medium: 0,
+          low: 1
+        }
+      }),
+      auditScanId: scan.id,
+      createdById: admin.id,
+    }
+  });
+
+  console.log(`Report created: ${report.title}`);
 }
 
 main()
